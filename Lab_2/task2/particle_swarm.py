@@ -34,6 +34,14 @@ import matplotlib.pyplot as plt
 # plt.savefig('myfilename.png', dpi=100)
 # print('helo')
 
+FIRST_DAY_DISTANCE = 2
+DISTANCE_DECREASE_RATE = 0.9
+NUMBER_OF_DAYS = 10
+SQRT_NUMBER_OF_SEARCHERS = 10
+PB_WEIGHT = 1
+GB_WEIGHT = 1
+
+
 class Searcher:
     def __init__(self, coords) -> None:
         self.coords = coords
@@ -41,8 +49,8 @@ class Searcher:
         self.pb_coords = [2, 3]
 
     def new_localization(self, gb_coords, path_len):
-        pb_weight = 1
-        gb_weight = 1
+        # pb_weight = 1
+        # gb_weight = 1
         pb_vector = [self.pb_coords[0] - self.coords[0],
                      self.pb_coords[1] - self.coords[1]]
         pb_v_len = math.sqrt((pb_vector[0]**2) + (pb_vector[1]**2))
@@ -53,8 +61,8 @@ class Searcher:
         gb_v_len = math.sqrt((gb_vector[0]**2) + (gb_vector[1]**2))
         gb_versor = np.array(gb_vector)/gb_v_len
 
-        resultant_vector = [pb_versor[0]*pb_weight+gb_versor[0] *
-                            gb_weight, pb_versor[1]*pb_weight+gb_versor[1]*gb_weight]
+        resultant_vector = [pb_versor[0]*PB_WEIGHT+gb_versor[0] *
+                            GB_WEIGHT, pb_versor[1]*PB_WEIGHT+gb_versor[1]*GB_WEIGHT]
         resultant_vector_len = math.sqrt(
             (resultant_vector[0]**2) + (resultant_vector[1]**2))
         resultant_versor = np.array(resultant_vector)/resultant_vector_len
