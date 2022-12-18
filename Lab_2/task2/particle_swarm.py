@@ -3,12 +3,12 @@
 import math
 # import random
 import numpy as np
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 FIRST_DAY_DISTANCE = 1
 DISTANCE_DECREASE_RATE = 0.9
-NUMBER_OF_DAYS = 6
-SQRT_NUMBER_OF_SEARCHERS = 10
+NUMBER_OF_DAYS = 12
+SQRT_NUMBER_OF_SEARCHERS = 2
 PB_WEIGHT = 1
 GB_WEIGHT = 1.1
 X_RANGE_MIN = -4.5
@@ -96,6 +96,24 @@ class Global_best:
         self.coords = searcher.coords
         # self.value = self.calc_value()
 
+def show_plot():
+    def f(x, y):
+        "Objective function"
+        return ((1.5 - x - x*y) ** 2) + ((2.25 - x + ((x*y)**2))**2) + ((2.625 - x + ((x*y)**3))**2)
+    x, y = np.array(np.meshgrid(np.linspace(Y_RANGE_MIN, X_RANGE_MAX, 1000),
+                np.linspace(Y_RANGE_MIN, Y_RANGE_MAX, 1000)))
+    z = f(x, y)
+    x_min = x.ravel()[z.argmin()]
+    y_min = y.ravel()[z.argmin()]
+    plt.figure(figsize=(8, 6))
+    plt.imshow(z, extent=[X_RANGE_MIN, X_RANGE_MAX, Y_RANGE_MIN, Y_RANGE_MAX],
+            origin='lower', cmap='viridis', alpha=0.5)
+    plt.colorbar()
+    plt.plot([x_min], [y_min], marker='x', markersize=5, color="white")
+    contours = plt.contour(x, y, z, 10, colors='black', alpha=0.4)
+    plt.clabel(contours, inline=True, fontsize=8, fmt="%.0f")
+    plt.show()
+    # plt.savefig('myfilename.png', dpi=100)
 
 def place_searchcers():
     searchers_list = []
@@ -119,7 +137,6 @@ def particle_swarm(searchers_list: list):
     print(global_best)
     for day in range(0, NUMBER_OF_DAYS):
         for searcher in searchers_list:
-            # print('hi')
             searcher.new_localization(
                 global_best.coords, FIRST_DAY_DISTANCE*(DISTANCE_DECREASE_RATE**day))
             if searcher.personal_best < global_best.value:
@@ -130,12 +147,7 @@ def particle_swarm(searchers_list: list):
 
 
 if __name__ == '__main__':
-    # searcher1 = Searcher([0, 0])
-    # global_best = Global_best()
-    # searcher1.new_localization(global_best.coords, 10)
-    # print(searcher1.coords)
-    # print(np.meshgrid(np.linspace(-4.5, 4.5, SQRT_NUMBER_OF_SEARCHERS),
-    #                   np.linspace(-4.5, 4.5, SQRT_NUMBER_OF_SEARCHERS)))
     searchers_list = place_searchcers()
     print(searchers_list)
     particle_swarm(searchers_list)
+    show_plot()
