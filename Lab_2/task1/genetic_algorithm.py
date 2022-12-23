@@ -3,16 +3,17 @@
 import copy
 import random
 import pandas as pd
+from termcolor import colored
 
 NUMBER_OF_COLUMNS = 99
 NUMBER_OF_ROWS = 12
 NUMBER_OF_RESOURCES = 10
 JOBS_PER_PRODUCT = 10
 
-NUMBER_OF_GENERATIONS = 30
-POPULATION_SIZE = 10  # MUST BE EVEN
-REJECTION_SIZE = 2
-NUMBER_OF_MUTATIONS = 5
+NUMBER_OF_GENERATIONS = 100
+POPULATION_SIZE = 50  # MUST BE EVEN
+REJECTION_SIZE = 5
+NUMBER_OF_MUTATIONS = 20
 
 
 class Product:
@@ -159,7 +160,7 @@ def genetic_algotithm(products):
         two_populations.sort(key=lambda x: x.time, reverse=False)
         # print('TWO_POPULATIONS: ', two_populations, len(two_populations))
         population = two_populations[:POPULATION_SIZE]
-        previous_generation = copy.deepcopy(population)
+        # previous_generation = copy.deepcopy(population)
         print(
             f'BEST FROM GENERATION {generation}: {population[0]}, {len(population)}')
         if population[0].time < best_ever.time:
@@ -182,11 +183,10 @@ def genetic_algotithm(products):
                 nucleotide = kid.priority[mutation_list[0]]
                 kid.priority[mutation_list[0]] = kid.priority[mutation_list[1]]
                 kid.priority[mutation_list[1]] = nucleotide
-    print(previous_generation)
     return best_ever
 
 
 if __name__ == '__main__':
     tasks_data = upload_tasks()
     products = extract_products_instructions(tasks_data)
-    print('BEST EVER: ', genetic_algotithm(products))
+    print(colored(('BEST EVER: ', genetic_algotithm(products)), 'red'))
