@@ -39,11 +39,20 @@ class City:
 #         return f'cost: {self.lowest_cost}, path: {self.path}'
 
 
-def calc_distance(A: list, B: list) -> float:
+def calc_distance_S(A: list, B: list) -> float:
     distance_2 = 0
     for coord in range(len(A)):
         distance_2 += (A[coord] - B[coord]) ** 2
     return round(math.sqrt(distance_2), 2)
+
+def calc_distance_NS(A: list, B: list) -> float:
+    distance_2 = 0
+    for coord in range(len(A)):
+        distance_2 += (A[coord] - B[coord]) ** 2
+    distance = math.sqrt(distance_2)
+    if A[2] == B[2]: return round(distance, 2)
+    distance += distance*0.1 if A[2] < B[2] else distance*-0.1
+    return round(distance, 2)
 
 
 def generate_cities(number_of_cities: int) -> list:
@@ -56,12 +65,12 @@ def generate_cities(number_of_cities: int) -> list:
     return cities, cities_numbers_list
 
 
-def create_distance_matrix(list_of_cities: list) -> list:
+def create_distance_matrix(list_of_cities: list, calculate_distance_func) -> list:
     distance_matrix = []
     for city in range(len(list_of_cities)):
         distance_matrix.append([])
         for neighbor in range(len(list_of_cities)):
-            distance = calc_distance(
+            distance = calculate_distance_func(
                 list_of_cities[city].coords, list_of_cities[neighbor].coords)
             distance = distance if distance != 0 else float('inf')
             distance_matrix[city].append(distance)
@@ -87,18 +96,18 @@ def destroy_roads(distance_matrix: list, cities: list) -> list:
     return distance_matrix, cities
 
 
-def calculate_cost(path: list, cities: list) -> float:
+def calculate_cost(path: list, cities: list, calc_distance_function) -> float:
     cost = 0
     for number_of_city in range(len(path) - 1):
-        cost += calc_distance(cities[path[number_of_city]].coords,
+        cost += calc_distance_function(cities[path[number_of_city]].coords,
                               cities[path[number_of_city + 1]].coords)
     return cost
 
 
-def DFS(visited_cities: list, cities_numbers_list: list, cities: list, current_cost: float, best_path: list, lowest_cost: float):
+def DFS(visited_cities: list, cities_numbers_list: list, cities: list, current_cost: float, best_path: list, lowest_cost: float, calculate_distance_func):
     if len(visited_cities) == len(cities_numbers_list):
         final_cost = current_cost + \
-            calc_distance(cities[visited_cities[-1]].coords, cities[0].coords)
+            calculate_distance_func(cities[visited_cities[-1]].coords, cities[0].coords)
         if final_cost < lowest_cost:
             lowest_cost = final_cost
             best_path = visited_cities
@@ -107,16 +116,16 @@ def DFS(visited_cities: list, cities_numbers_list: list, cities: list, current_c
     else:
         for neighbor in cities[visited_cities[-1]].neighbors:
             if neighbor not in visited_cities and current_cost < lowest_cost:
-                new_cost = current_cost + calc_distance(
+                new_cost = current_cost + calculate_distance_func(
                     cities[visited_cities[-1]].coords, cities[neighbor].coords)
                 visited_cities.append(neighbor)
                 best_path, lowest_cost = DFS(
-                    visited_cities[:], cities_numbers_list, cities, new_cost, best_path, lowest_cost)
+                    visited_cities[:], cities_numbers_list, cities, new_cost, best_path, lowest_cost, calculate_distance_func)
                 visited_cities.remove(visited_cities[-1])
         return best_path, lowest_cost
 
 
-def BFS(cities: list) -> None:
+def BFS(cities: list, calc_distance_function) -> None:
 
     def if_visited(city: int, path: list) -> int:
         for visited_city in range(len(path)):
@@ -151,18 +160,18 @@ def BFS(cities: list) -> None:
 
     for path in all_paths:
         if len(path) == len(cities) + 1:
-            cost = calculate_cost(path, cities)
+            cost = calculate_cost(path, cities, calc_distance_function)
             if cost < lowest_cost:
                 best_path = path[:]
                 lowest_cost = cost
     return best_path, lowest_cost
 
 
-def nearest_neighbor(visited_cities: list, cities_numbers_list: list, cities: list, current_cost: float, distances):
+def nearest_neighbor(visited_cities: list, cities_numbers_list: list, cities: list, current_cost: float, distances, calc_distance_func):
     if len(visited_cities) == len(cities_numbers_list):
         final_path = visited_cities
         final_cost = current_cost + \
-            calc_distance(cities[visited_cities[-1]].coords, cities[0].coords)
+            calc_distance_func(cities[visited_cities[-1]].coords, cities[0].coords)
         final_path.append(0)
         return final_path, final_cost
     else:
@@ -170,11 +179,11 @@ def nearest_neighbor(visited_cities: list, cities_numbers_list: list, cities: li
             distances[visited_cities[-1]][city] = float('inf')
         next_city = distances[visited_cities[-1]
                               ].index(min(distances[visited_cities[-1]]))
-        new_cost = current_cost + calc_distance(
+        new_cost = current_cost + calc_distance_func(
             cities[visited_cities[-1]].coords, cities[next_city].coords)
         visited_cities.append(next_city)
         final_path, final_cost = nearest_neighbor(
-            visited_cities[:], cities_numbers_list, cities, new_cost, distances)
+            visited_cities[:], cities_numbers_list, cities, new_cost, distances, calc_distance_func)
         return final_path, final_cost
 
 
@@ -197,18 +206,18 @@ def heuristic_min_distance_AD(visited: list, candidate_city: int, distances: lis
     return expected_cost
 
 
-def a_star(visited_cities: list, number_of_cities: int, cities: list, distances: list, heuristic):
+def a_star(visited_cities: list, number_of_cities: int, cities: list, distances: list, heuristic, calc_distance_func):
     if len(visited_cities) == number_of_cities:
         final_path = visited_cities
         final_path.append(0)
-        final_cost = calculate_cost(final_path, cities)
+        final_cost = calculate_cost(final_path, cities, calc_distance_func)
         return final_path, final_cost
     else:
         min_expected_cost = float('inf')
         next_city = 10
         for city in cities[visited_cities[-1]].neighbors:
             if city not in visited_cities:
-                fixed_cost = calc_distance(
+                fixed_cost = calc_distance_func(
                     cities[visited_cities[-1]].coords, cities[city].coords)
                 expected_cost = fixed_cost + \
                     heuristic(visited_cities[:], city,
@@ -218,7 +227,7 @@ def a_star(visited_cities: list, number_of_cities: int, cities: list, distances:
                     next_city = city
         visited_cities.append(next_city)
         final_path, final_cost = a_star(
-            visited_cities[:], number_of_cities, cities, distances, heuristic)
+            visited_cities[:], number_of_cities, cities, distances, heuristic, calc_distance_func)
         return final_path, final_cost
 
 
@@ -230,21 +239,21 @@ def result(name, path, cost, time):
     print(f'{name}: best path: {path}, lowest cost: {cost:.2f}, duration: {time:.2f}s')
 
 
-def all_conected(cities, cities_numbers_list, distance_matrix):
+def all_conected(cities, cities_numbers_list, distance_matrix, calc_distance):
     DFS_start_time = Timer.start()
     DFS_best_path_final, DFS_lowest_cost = DFS(
-        [0], cities_numbers_list, cities, 0, [], float('inf'))
+        [0], cities_numbers_list, cities, 0, [], float('inf'), calc_distance)
     DFS_duration = Timer.stop(DFS_start_time)
     result('DFS', DFS_best_path_final, DFS_lowest_cost, DFS_duration)
 
     BFS_start_time = Timer.start()
-    BFS_best_path, BFS_cost = BFS(cities)
+    BFS_best_path, BFS_cost = BFS(cities, calc_distance_function=calc_distance)
     BFS_duration = Timer.stop(BFS_start_time)
     result('BFS', BFS_best_path, BFS_cost, BFS_duration)
 
     NN_start_time = Timer.start()
     NN_best_path, NN_cost = nearest_neighbor(
-        [0], cities_numbers_list, cities, 0, copy.deepcopy(distance_matrix))
+        [0], cities_numbers_list, cities, 0, copy.deepcopy(distance_matrix), calc_distance_func=calc_distance)
     NN_duration = Timer.stop(NN_start_time)
     result('NN', NN_best_path, NN_cost, NN_duration)
 
@@ -255,12 +264,12 @@ def all_conected(cities, cities_numbers_list, distance_matrix):
 
     A_star_start_time = Timer.start()
     A_star_best_path, A_star_cost = a_star(
-        [0], len(cities), cities, distance_matrix, heuristic_min_distance_AD)
+        [0], len(cities), cities, distance_matrix, heuristic_min_distance_AD, calc_distance_func=calc_distance)
     A_star_duration = Timer.stop(A_star_start_time)
     result('A star', A_star_best_path, A_star_cost, A_star_duration)
 
     cities_numbers_list.append(0)
-    random_cost = calculate_cost(cities_numbers_list, cities)
+    random_cost = calculate_cost(cities_numbers_list, cities, calc_distance_function=calc_distance)
     result('Random path', cities_numbers_list, random_cost, 0)
     cities_numbers_list.remove(0)
     # print('miasta', cities, cities_numbers_list)
@@ -268,23 +277,22 @@ def all_conected(cities, cities_numbers_list, distance_matrix):
 
     # heuristic_min_distance_AD([0, 3], distance_matrix[:])
 
-
-def destroyed_roads(cities, cities_numbers_list, distance_matrix):
+def destroyed_roads(cities, cities_numbers_list, distance_matrix, calc_distance_func):
     DFS_start_time = Timer.start()
     DFS_best_path_final, DFS_lowest_cost = DFS(
-        [0], cities_numbers_list, cities, 0, [], float('inf'))
+        [0], cities_numbers_list, cities, 0, [], float('inf'), calc_distance_func)
     DFS_duration = Timer.stop(DFS_start_time)
     result('DFS destroyed roads:', DFS_best_path_final,
            DFS_lowest_cost, DFS_duration)
 
     BFS_start_time = Timer.start()
-    BFS_best_path, BFS_cost = BFS(cities)
+    BFS_best_path, BFS_cost = BFS(cities, calc_distance_func)
     BFS_duration = Timer.stop(BFS_start_time)
     result('BFS destroyed roads', BFS_best_path, BFS_cost, BFS_duration)
 
     NN_start_time = Timer.start()
     NN_best_path, NN_cost = nearest_neighbor(
-        [0], cities_numbers_list, cities, 0, copy.deepcopy(distance_matrix))
+        [0], cities_numbers_list, cities, 0, copy.deepcopy(distance_matrix), calc_distance_func)
     NN_duration = Timer.stop(NN_start_time)
     result('NN destroyed roads:', NN_best_path, NN_cost, NN_duration)
 
@@ -333,15 +341,23 @@ def draw_graph(cities):
 if __name__ == '__main__':
     number_of_cities = int(sys.argv[1])
     cities, cities_numbers_list = generate_cities(number_of_cities)
-    distance_matrix = create_distance_matrix(cities)
+    distance_matrix = create_distance_matrix(cities, calculate_distance_func=calc_distance_S)
+    distance_matrix_NS = create_distance_matrix(cities, calculate_distance_func=calc_distance_NS)
     destroyed_distance_matrix, destroyed_cities = destroy_roads(
         copy.deepcopy(distance_matrix), copy.deepcopy(cities))
+    destroyed_distance_matrix_NS, destroyed_cities_NS = destroy_roads(
+        copy.deepcopy(distance_matrix_NS), copy.deepcopy(cities))
     # print(cities, destroyed_cities)
-
-    all_conected(cities, cities_numbers_list, distance_matrix)
-
-    # destroyed_roads(destroyed_cities, cities_numbers_list,
-    #                 destroyed_distance_matrix)
+    print('ALL CONNECTED, SYMETRIC:')
+    all_conected(cities, cities_numbers_list, distance_matrix, calc_distance_S)
+    print('ALL CONNECTED, NON SYMETRIC:')
+    all_conected(cities, cities_numbers_list, distance_matrix, calc_distance_NS)
+    print('NOT ALL CONNECTED, SYMETRIC:')
+    destroyed_roads(destroyed_cities, cities_numbers_list,
+                    destroyed_distance_matrix, calc_distance_S)
+    print('NOT ALL CONNECTED, NON SYMETRIC:')
+    destroyed_roads(destroyed_cities_NS, cities_numbers_list,
+                    destroyed_distance_matrix_NS, calc_distance_NS)
 
     # draw_graph(cities)
     # draw_graph(destroyed_cities)
