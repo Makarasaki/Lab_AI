@@ -2,15 +2,17 @@
 
 import sys
 import json
+import copy
 import numpy as np
 import pandas as pd
+from random import random
 
 INPUT_SIZE = 4
 OUTPUT_SIZE = 3
 LAYERS_DIMENSION = 6
 NUMBER_OF_HIDDEN_LAYERS = 2
-NUMBER_OF_EPOCHS = 5
-LEARNING_RATE = 0.2
+NUMBER_OF_EPOCHS = 10000
+LEARNING_RATE = 0.01
 
 class Neural_Network:
 
@@ -28,10 +30,10 @@ class Neural_Network:
 
     def get_random_weights(self):
         self.weights = []
-        self.weights.append(2*np.random.random((LAYERS_DIMENSION, INPUT_SIZE)) -1)
-        self.weights.append(2*np.random.random((LAYERS_DIMENSION, LAYERS_DIMENSION)) -1)
-        self.weights.append(2*np.random.random((OUTPUT_SIZE, LAYERS_DIMENSION)) -1)
-        # self.weights = [[], [], []]
+        # w = np.random.rand(INPUT_SIZE, LAYERS_DIMENSION)
+        self.weights.append(np.array(2*np.random.random((INPUT_SIZE, LAYERS_DIMENSION)) -1))
+        self.weights.append(np.array(2*np.random.random((LAYERS_DIMENSION, LAYERS_DIMENSION)) -1))
+        self.weights.append(np.array(2*np.random.random((LAYERS_DIMENSION, OUTPUT_SIZE)) -1))
 
         # for _ in range(self.layers_size):
         #     weights_list = 2*np.random.random((self.input_size, 1)) - 1
@@ -61,12 +63,12 @@ class Neural_Network:
 
     def get_random_biases(self):
         self.biases = []
-        self.biases.append(np.zeros(LAYERS_DIMENSION))
-        self.biases.append(np.zeros(LAYERS_DIMENSION))
-        self.biases.append(np.zeros(OUTPUT_SIZE))
-        # self.biases.append(2*np.random.random((LAYERS_DIMENSION, 1)) - 1)
-        # self.biases.append(2*np.random.random((LAYERS_DIMENSION, 1)) - 1)
-        # self.biases.append(2*np.random.random((OUTPUT_SIZE, 1)) - 1)
+        self.biases.append(np.zeros(LAYERS_DIMENSION)+1)
+        self.biases.append(np.zeros(LAYERS_DIMENSION)+1)
+        self.biases.append(np.zeros(OUTPUT_SIZE)+1)
+        # self.biases.append(np.array(2*np.random.random((LAYERS_DIMENSION, 1)) - 1))
+        # self.biases.append(np.array(2*np.random.random((LAYERS_DIMENSION, 1)) - 1))
+        # self.biases.append(np.array(2*np.random.random((OUTPUT_SIZE, 1)) - 1))
         
         
         # self.biases = [[], [], []]
@@ -127,66 +129,75 @@ class Neural_Network:
         
 
     def run(self, inputs: list):
-        for neuron in range(self.layers_size):
-            self.layer1[neuron] = np.dot(inputs, self.weights[0][neuron])
+        inputs = np.array(inputs)
         
-        for neuron in range(self.layers_size):
-            self.layer1[neuron] += self.biases[0][neuron]
-            
+        self.layer1 = np.array(np.dot(inputs, self.weights[0]))
+        print(self.biases[0], self.layer1)
+        self.layer1 += self.biases[0]
         self.relu(self.layer1)
             
-        for neuron in range(self.layers_size):
-            self.layer2[neuron] = np.dot(self.layer1, self.weights[1][neuron])
-        
-        for neuron in range(self.layers_size):
-            self.layer2[neuron] += self.biases[1][neuron]
-            
+        self.layer2 = np.dot(self.layer1, self.weights[1])
+        self.layer2 += self.biases[1]
         self.relu(self.layer2)
         
-        for neuron in range(self.output_size):
-            self.output[neuron] = np.dot(self.layer2, self.weights[2][neuron])
-        
-        for neuron in range(self.output_size):
-            self.output[neuron] += self.biases[1][neuron]
-        
+        self.output = np.dot(self.layer2, self.weights[2])
+        self.output += self.biases[2]
         self.softmax()
-            
+        
+        # print('INPUTS: ', inputs)
         # print('HIDDEN LAYER 1: ', self.layer1, type(self.layer1))
         # print('HIDDEN LAYER 2: ', self.layer2, type(self.layer1))
         # print('OUTPUT LAYER:', self.output, type(self.output))
+        # print('WEIGHTS: ', self.weights, 'BIASES: ', self.biases)
 
     def back_propagation(self, input_array, real_output):
         input_array = np.array(input_array)
         relu_layer_derivative = np.vectorize(self.relu_derivative)
         
         # output => layer2
-        error = self.output - real_output
+        error = np.array(real_output) - np.array(self.output)
+        # print(f'error on output {error}')
         delta_output = error * self.softmax_derivative(self.output)
-        delta_output_reshaped = delta_output.reshape(delta_output.shape[0], -1)
-        layer2_reshaped = self.layer2.reshape(self.layer2.shape[0],-1).T
+        """
+        delta_re = delta.reshape(delta.shape[0], -1).T
+        current_activations = current_activations.reshape(current_activations.shape[0],-1)
+        self.derivatives[i] = np.dot(current_activations, delta_re)
+        """
+        delta_output_reshaped = delta_output.reshape(delta_output.shape[0], -1).T
+        layer2_reshaped = self.layer2.reshape(self.layer2.shape[0],-1)
         # print('delta', delta_output, 'layer2', self.layer2, self.layer2.shape)
         # print('delta re', delta_output_reshaped, 'layer2 re', layer2_reshaped)
-        derivative_output = np.dot(delta_output_reshaped, layer2_reshaped)
+        derivative_output = np.dot(layer2_reshaped, delta_output_reshaped)
         # print('OUTPUT DERIVATIVE: ', derivative_output, 'WEIGHTS [2]', self.weights[2])
+        
+        error = np.dot(delta_output, self.weights[2].T)
+        self.biases[2] += delta_output * LEARNING_RATE
         self.weights[2] += derivative_output * LEARNING_RATE
         
-        error = np.dot(delta_output, self.weights[2])
-        
-        # print(error)
+        # print(f'error on layer2 {error}')
         # layer2 => layer1
+        print('LAYER 2',self.layer2)
+        print('LAYER 2 DERIVATIVE', relu_layer_derivative(self.layer2))
         delta_layer2 = error * relu_layer_derivative(self.layer2)
-        delta_layer2_reshaped = delta_layer2.reshape(delta_layer2.shape[0], -1)
-        layer1_reshaped = self.layer1.reshape(self.layer1.shape[0],-1).T
-        derivative_layer2 = np.dot(delta_layer2_reshaped, layer1_reshaped)
+        delta_layer2_reshaped = delta_layer2.reshape(delta_layer2.shape[0], -1).T
+        layer1_reshaped = self.layer1.reshape(self.layer1.shape[0],-1)
+        derivative_layer2 = np.dot(layer1_reshaped, delta_layer2_reshaped)
+        # print(f'derivatives or layer2 {derivative_layer2}')
+        
+        error = np.dot(delta_layer2, self.weights[1].T)
+        
+        self.biases[1] += delta_layer2 * LEARNING_RATE
         self.weights[1] += derivative_layer2 * LEARNING_RATE
         
-        error = np.dot(delta_layer2, self.weights[1])
         
+        # print(f'error on layer1 {error}')
         # layer1 => input
         delta_layer1 = error * relu_layer_derivative(self.layer1)
-        delta_layer1_reshaped = delta_layer1.reshape(delta_layer1.shape[0], -1)
-        input_reshaped = input_array.reshape(input_array.shape[0],-1).T
-        derivative_layer1 = np.dot(delta_layer1_reshaped, input_reshaped)
+        delta_layer1_reshaped = delta_layer1.reshape(delta_layer1.shape[0], -1).T
+        input_reshaped = input_array.reshape(input_array.shape[0],-1)
+        derivative_layer1 = np.dot(input_reshaped, delta_layer1_reshaped)
+        # print(f'derivatives or layer1 {derivative_layer1}')
+        self.biases[0] += delta_layer1 * LEARNING_RATE
         self.weights[0] += derivative_layer1 * LEARNING_RATE
         
         
@@ -194,20 +205,25 @@ class Neural_Network:
         
     
     def train(self):
-        self.upload_training_data()
+        # self.upload_training_data()
         # print(self.training_data)
         for epoch in range(NUMBER_OF_EPOCHS):
+            self.upload_training_data()
             for index, _ in self.training_data.iterrows():
                 input_array = [self.training_data.loc[index, 'Petal_width'],self.training_data.loc[index,'Petal_length'],self.training_data.loc[index, 'Sepal_width'],self.training_data.loc[index,'Sepal_length']]
                 correct_output = np.zeros(OUTPUT_SIZE)
                 correct_output[self.training_data.loc[index, 'Species_No'] - 1] = 1
-                print('training data',self.training_data.loc[index], 'output:', correct_output)
+                # print('training data',self.training_data.loc[index], 'output:', correct_output)
                 self.run(input_array)
+                print('EPOCH: ',epoch,'CORRECT OUTPUT: ', correct_output, 'NN OUTPUT: ', self.output)
+                if index == 1: print(self.weights)
                 self.back_propagation(input_array, correct_output)
+                if index > 30: break
     
     def upload_training_data(self):
         self.training_data = pd.read_excel('iris.xlsx')
         self.training_data = self.training_data.sample(frac = 1)
+        # print(self.training_data)
         # self.training_data = self.training_data.sample(frac = 1)
         
 
@@ -224,7 +240,12 @@ if __name__ == '__main__':
     # nn.softmax()
     # print('po softmaxie', nn.output)
     # print('po derywatywie', nn.softmax_derivative(nn.output), type(nn.softmax_derivative(nn.output)))
+    pw = copy.deepcopy(nn.weights)
+    pb = copy.deepcopy(nn.weights)
+    # print(f'PRZED TRENINGIEM: FINAL WEIGHTS: {pw}, BIASES: {pb}')
     nn.train()
+    print(f'PRZED TRENINGIEM: FINAL WEIGHTS: {pw}, BIASES: {pb}')
+    print(f'PO TRENINGU: FINAL WEIGHTS: {nn.weights}, BIASES: {nn.biases}')
     nn.run([0.3, 1.3, 3.5, 5]) # Sestosa
     print(nn.output)
     nn.argmax()
