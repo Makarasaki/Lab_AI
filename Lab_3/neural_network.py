@@ -9,7 +9,7 @@ from random import random
 
 INPUT_SIZE = 4
 OUTPUT_SIZE = 3
-LAYERS_DIMENSION = 6
+LAYERS_DIMENSION = 4
 NUMBER_OF_HIDDEN_LAYERS = 2
 NUMBER_OF_EPOCHS = 10000
 LEARNING_RATE = 0.01
@@ -63,26 +63,12 @@ class Neural_Network:
 
     def get_random_biases(self):
         self.biases = []
-        self.biases.append(np.zeros(LAYERS_DIMENSION)+1)
-        self.biases.append(np.zeros(LAYERS_DIMENSION)+1)
-        self.biases.append(np.zeros(OUTPUT_SIZE)+1)
+        self.biases.append(np.zeros(LAYERS_DIMENSION))
+        self.biases.append(np.zeros(LAYERS_DIMENSION))
+        self.biases.append(np.zeros(OUTPUT_SIZE))
         # self.biases.append(np.array(2*np.random.random((LAYERS_DIMENSION, 1)) - 1))
         # self.biases.append(np.array(2*np.random.random((LAYERS_DIMENSION, 1)) - 1))
         # self.biases.append(np.array(2*np.random.random((OUTPUT_SIZE, 1)) - 1))
-        
-        
-        # self.biases = [[], [], []]
-
-        # for layer in range(self.number_of_layers):
-        #     biases_list = 2*np.random.random((self.layers_size, 1)) - 1
-        #     biases_list = biases_list.tolist()
-        #     for index, value in enumerate(biases_list): biases_list[index] = value[0] 
-        #     self.biases[layer]=biases_list
-        
-        # biases_list = 2*np.random.random((self.output_size, 1)) - 1
-        # biases_list = biases_list.tolist()  
-        # for index, value in enumerate(biases_list): biases_list[index] = value[0] 
-        # self.biases[2]=biases_list
 
     def get_biases(self):
         with open('biases.json', 'rb') as fp:
@@ -104,14 +90,27 @@ class Neural_Network:
         self.output = np.zeros(len(self.output)).tolist()
         self.output[one] = 1
         
-    def softmax(self):
-        # np.random.rand()
-        divider = 0
-        for value in self.output:
-            divider += np.exp(value)
+    # def softmax(self):
+    #     # np.random.rand()
+    #     divider = 0
+    #     for value in self.output:
+    #         divider += np.exp(value)
         
-        for index, value in enumerate(self.output):
-            self.output[index] = np.exp(value)/divider
+    #     for index, value in enumerate(self.output):
+    #         self.output[index] = np.exp(value)/divider
+    
+    def softmax(self):
+        self.output = np.exp(self.output) / np.sum(np.exp(self.output), axis=-1, keepdims=True)
+        
+    def softmax2(self, x):
+        return np.exp(x) / np.sum(np.exp(x), axis=-1, keepdims=True)
+        
+    def softmax_derivative_2(self, x):
+        s = self.softmax2(x[:])
+        # print(s)
+        # print(np.diag(s))
+        # print(np.outer(s,s))
+        return np.diag(s) - np.outer(s, s)
             
     def softmax_derivative(self, softmax_product: list):
         # TODO: use np.vectorize()
@@ -132,7 +131,7 @@ class Neural_Network:
         inputs = np.array(inputs)
         
         self.layer1 = np.array(np.dot(inputs, self.weights[0]))
-        print(self.biases[0], self.layer1)
+        # print(self.biases[0], self.layer1)
         self.layer1 += self.biases[0]
         self.relu(self.layer1)
             
@@ -156,8 +155,14 @@ class Neural_Network:
         
         # output => layer2
         error = np.array(real_output) - np.array(self.output)
-        # print(f'error on output {error}')
-        delta_output = error * self.softmax_derivative(self.output)
+        # print(f'error on output: {error}, error shape:{error.shape}')
+        # delta_output = error * self.softmax_derivative(self.output)
+        # print(f'delta_output: {delta_output}')
+        
+        test_derivative = self.softmax_derivative_2(self.output)
+        # print(f'NEW TEST DERIVATIVE: {test_derivative} {test_derivative.shape}')
+        delta_output = np.dot(error, test_derivative)
+        # print(f'NEW TEST DELTA OUTPUT: {delta_output}')
         """
         delta_re = delta.reshape(delta.shape[0], -1).T
         current_activations = current_activations.reshape(current_activations.shape[0],-1)
@@ -176,8 +181,8 @@ class Neural_Network:
         
         # print(f'error on layer2 {error}')
         # layer2 => layer1
-        print('LAYER 2',self.layer2)
-        print('LAYER 2 DERIVATIVE', relu_layer_derivative(self.layer2))
+        # print('LAYER 2',self.layer2)
+        # print('LAYER 2 DERIVATIVE', relu_layer_derivative(self.layer2))
         delta_layer2 = error * relu_layer_derivative(self.layer2)
         delta_layer2_reshaped = delta_layer2.reshape(delta_layer2.shape[0], -1).T
         layer1_reshaped = self.layer1.reshape(self.layer1.shape[0],-1)
@@ -209,16 +214,18 @@ class Neural_Network:
         # print(self.training_data)
         for epoch in range(NUMBER_OF_EPOCHS):
             self.upload_training_data()
+            i = 0
             for index, _ in self.training_data.iterrows():
                 input_array = [self.training_data.loc[index, 'Petal_width'],self.training_data.loc[index,'Petal_length'],self.training_data.loc[index, 'Sepal_width'],self.training_data.loc[index,'Sepal_length']]
                 correct_output = np.zeros(OUTPUT_SIZE)
                 correct_output[self.training_data.loc[index, 'Species_No'] - 1] = 1
                 # print('training data',self.training_data.loc[index], 'output:', correct_output)
                 self.run(input_array)
-                print('EPOCH: ',epoch,'CORRECT OUTPUT: ', correct_output, 'NN OUTPUT: ', self.output)
-                if index == 1: print(self.weights)
+                # print(index)
+                if i == 1: print('EPOCH: ',epoch,'CORRECT OUTPUT: ', correct_output, 'NN OUTPUT: ', self.output)
                 self.back_propagation(input_array, correct_output)
-                if index > 30: break
+                if i > 30: break
+                i += 1
     
     def upload_training_data(self):
         self.training_data = pd.read_excel('iris.xlsx')
@@ -244,7 +251,7 @@ if __name__ == '__main__':
     pb = copy.deepcopy(nn.weights)
     # print(f'PRZED TRENINGIEM: FINAL WEIGHTS: {pw}, BIASES: {pb}')
     nn.train()
-    print(f'PRZED TRENINGIEM: FINAL WEIGHTS: {pw}, BIASES: {pb}')
+    print(f'PRZED TRENINGIEM: WEIGHTS: {pw}, BIASES: {pb}')
     print(f'PO TRENINGU: FINAL WEIGHTS: {nn.weights}, BIASES: {nn.biases}')
     nn.run([0.3, 1.3, 3.5, 5]) # Sestosa
     print(nn.output)
@@ -255,7 +262,7 @@ if __name__ == '__main__':
     nn.argmax()
     print('Result: ', nn.result())
     
-    nn.run([2.3,5.3,3.2,6.4]) # versicolor
+    nn.run([2.3,5.3,3.2,6.4]) # Verginica
     print(nn.output)
     nn.argmax()
     print('Result: ', nn.result()) # Verginica
