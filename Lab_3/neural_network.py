@@ -5,13 +5,12 @@ import json
 import copy
 import numpy as np
 import pandas as pd
-from random import random
 
 INPUT_SIZE = 4
 OUTPUT_SIZE = 3
 LAYERS_DIMENSION = 4
 NUMBER_OF_HIDDEN_LAYERS = 2
-NUMBER_OF_EPOCHS = 100
+NUMBER_OF_EPOCHS = 30
 LEARNING_RATE = 0.01
 
 class Neural_Network:
