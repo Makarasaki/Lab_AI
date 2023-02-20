@@ -5,10 +5,7 @@ import math
 import copy
 import time
 import random
-# import numpy as np
-# import networkx as nx
 from collections import deque
-# import matplotlib.pyplot as plt
 
 
 class Timer:
@@ -27,17 +24,8 @@ class City:
         self.num = city_num
 
     def __repr__(self) -> str:
-        return f'{self.coords}'
+        # return f'{self.coords}'
         return f'{self.num}, coordinates: {self.coords}, neighbors: {self.neighbors}'
-
-
-# class Result():
-#     def __init__(self):
-#         self.lowest_cost = 99999999
-#         self.path = []
-
-#     def __repr__(self) -> str:
-#         return f'cost: {self.lowest_cost}, path: {self.path}'
 
 
 def calc_distance_S(A: list, B: list) -> float:
@@ -251,45 +239,33 @@ def a_star(visited_cities: list, number_of_cities: int, cities: list, distances:
 
 
 def a_star_2(start_path, number_of_cities: int, cities: list, distances: list, heuristic, calc_distance_func):
-    pass
-    # priority_list = deque()
-    # priority_list.append((start_path, 0))
     priority_list = [(start_path, 0)]
     
     while len(priority_list[0][0]) != number_of_cities:
-        pass
-        # print('priority', priority_list)
         path_to_check = priority_list.pop(0)
-        # print('to check', path_to_check)
-        # print('po usunieciu' ,priority_list)
         for city in cities[path_to_check[0][-1]].neighbors:
             if city not in path_to_check[0]: 
                 new_path = path_to_check[0][:]
-                # print('new path', new_path)
                 new_path.append(city)
                 fixed_cost = calculate_cost(new_path, cities, calc_distance_func)
-                # fixed_cost = calc_distance_func(
-                #     cities[path_to_check[0][-1]].coords, cities[city].coords)
                 expected_cost = fixed_cost + \
                     heuristic(path_to_check[0][:], city,
                                 copy.deepcopy(distances))
                 priority_list.append((new_path[:], expected_cost))
         priority_list.sort(key = lambda x: float(x[1]))
-        # sort priority list
-    # print(priority_list[0])
     return priority_list[0][0]
     
 
 
-def dijkstra(cities, cities_numbers_list, distance_matrix):
-    visited = [0]
-    path = [0]
-    not_visited = cities_numbers_list[1:]
-    print(not_visited)
-    predicted_distances = [{'shortest_distance': float('inf'), 'previous_city': None} for _ in cities_numbers_list]
-    predicted_distances[0]['shortest_distance'] = 0
-    predicted_distances[0]['previous_city'] = 'start'
-    print(predicted_distances)
+# def dijkstra(cities, cities_numbers_list, distance_matrix):
+#     visited = [0]
+#     path = [0]
+#     not_visited = cities_numbers_list[1:]
+#     print(not_visited)
+#     predicted_distances = [{'shortest_distance': float('inf'), 'previous_city': None} for _ in cities_numbers_list]
+#     predicted_distances[0]['shortest_distance'] = 0
+#     predicted_distances[0]['previous_city'] = 'start'
+#     print(predicted_distances)
     
 def result(name, path, cost, time):
     print(f'{name}: best path: {path}, lowest cost: {cost:.2f}, duration: {time:.2f}s')
@@ -350,14 +326,8 @@ def all_conected(cities, cities_numbers_list, distance_matrix, calc_distance):
     random_cost = calculate_cost(cities_numbers_list, cities, calc_distance_function=calc_distance)
     result('Random path', cities_numbers_list, random_cost, 0)
     cities_numbers_list.pop()
-    # print('miasta', cities, cities_numbers_list)
-    # print('distance', distance_matrix)
-
-    # heuristic_min_distance_AD([0, 3], distance_matrix[:])
 
 def destroyed_roads(cities, cities_numbers_list, distance_matrix, calc_distance_func):
-    pass
-    # print(f'Cities list: {cities_numbers_list}')
     DFS_start_time = Timer.start()
     DFS_best_path_final, DFS_lowest_cost = DFS(
         [0], cities_numbers_list, cities, 0, [], float('inf'), calc_distance_func)
@@ -410,40 +380,6 @@ def destroyed_roads(cities, cities_numbers_list, distance_matrix, calc_distance_
     # print('distance', distance_matrix)
 
 
-# def draw_graph(cities):
-#     roads = []
-#     locations = []
-
-#     for city in cities:
-#         locations.append((city.coords[0], city.coords[1]))
-#         for road in city.neighbors:
-#             roads.append((city.num, road))
-#     G = nx.DiGraph(directed=True)
-#     G.add_edges_from(roads)
-
-#     options = {
-#         'node_color': 'green',
-#         'node_size': 200,
-#         'width': 1,
-#         'arrowstyle': '->',
-#         'arrowsize': 20,
-#     }
-
-#     val_map = {'1': 1.0, '5': 0.5714285714285714, '6': 0.0}
-
-#     values = [val_map.get(node, 0.25) for node in G.nodes()]
-#     # generating pos dictionary
-
-#     # pos = {str(i):location for i, location in enumerate(locations)}
-#     pos = nx.spring_layout(G)
-#     print('POSITION', pos)
-
-#     # drawing graph, with positions included.
-#     nx.draw_networkx(G, pos=pos, arrows=True, **options)
-
-#     plt.show()
-
-
 if __name__ == '__main__':
     number_of_cities = int(sys.argv[1])
     cities, cities_numbers_list = generate_cities(number_of_cities)
@@ -464,6 +400,3 @@ if __name__ == '__main__':
     print('NOT ALL CONNECTED, NON SYMETRIC:')
     destroyed_roads(destroyed_cities_NS, cities_numbers_list,
                     destroyed_distance_matrix_NS, calc_distance_NS)
-
-    # draw_graph(cities)
-    # draw_graph(destroyed_cities)
