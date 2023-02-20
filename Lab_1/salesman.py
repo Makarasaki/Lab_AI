@@ -27,6 +27,7 @@ class City:
         self.num = city_num
 
     def __repr__(self) -> str:
+        return f'{self.coords}'
         return f'{self.num}, coordinates: {self.coords}, neighbors: {self.neighbors}'
 
 
@@ -202,8 +203,26 @@ def heuristic_min_distance_AD(visited: list, candidate_city: int, distances: lis
                 min_expected = distances[city][neighbor]
 
     expected_cost = (len(distances) - len(visited) - 1) * \
-        min_expected if min_expected != float('inf') else len(distances) * 1000
+        min_expected if min_expected != float('inf') else 0
     return expected_cost
+
+def heuristic_mean_IAD(visited: list, candidate_city: int, distances: list):
+    distance_total = 0.0
+    count = 0
+    visited.append(candidate_city)
+    for city in range(len(distances)):
+        if city in visited:
+            for neighbor in range(len(distances)):
+                distances[city][neighbor] = float('inf')
+                distances[neighbor][city] = float('inf')
+    
+    for city in range(len(distances)):
+        for neighbor in range(len(distances)):
+            if distances[city][neighbor] < float('inf'):
+                distance_total += distances[city][neighbor]
+                count += 1
+    if count == 0: return 0
+    return distance_total/count
 
 
 def a_star(visited_cities: list, number_of_cities: int, cities: list, distances: list, heuristic, calc_distance_func):
@@ -214,7 +233,7 @@ def a_star(visited_cities: list, number_of_cities: int, cities: list, distances:
         return final_path, final_cost
     else:
         min_expected_cost = float('inf')
-        next_city = 10
+        next_city = 69
         for city in cities[visited_cities[-1]].neighbors:
             if city not in visited_cities:
                 fixed_cost = calc_distance_func(
@@ -231,15 +250,53 @@ def a_star(visited_cities: list, number_of_cities: int, cities: list, distances:
         return final_path, final_cost
 
 
-def dijkstra():
+def a_star_2(start_path, number_of_cities: int, cities: list, distances: list, heuristic, calc_distance_func):
     pass
+    # priority_list = deque()
+    # priority_list.append((start_path, 0))
+    priority_list = [(start_path, 0)]
+    
+    while len(priority_list[0][0]) != number_of_cities:
+        pass
+        # print('priority', priority_list)
+        path_to_check = priority_list.pop(0)
+        # print('to check', path_to_check)
+        # print('po usunieciu' ,priority_list)
+        for city in cities[path_to_check[0][-1]].neighbors:
+            if city not in path_to_check[0]: 
+                new_path = path_to_check[0][:]
+                # print('new path', new_path)
+                new_path.append(city)
+                fixed_cost = calculate_cost(new_path, cities, calc_distance_func)
+                # fixed_cost = calc_distance_func(
+                #     cities[path_to_check[0][-1]].coords, cities[city].coords)
+                expected_cost = fixed_cost + \
+                    heuristic(path_to_check[0][:], city,
+                                copy.deepcopy(distances))
+                priority_list.append((new_path[:], expected_cost))
+        priority_list.sort(key = lambda x: float(x[1]))
+        # sort priority list
+    # print(priority_list[0])
+    return priority_list[0][0]
+    
 
 
+def dijkstra(cities, cities_numbers_list, distance_matrix):
+    visited = [0]
+    path = [0]
+    not_visited = cities_numbers_list[1:]
+    print(not_visited)
+    predicted_distances = [{'shortest_distance': float('inf'), 'previous_city': None} for _ in cities_numbers_list]
+    predicted_distances[0]['shortest_distance'] = 0
+    predicted_distances[0]['previous_city'] = 'start'
+    print(predicted_distances)
+    
 def result(name, path, cost, time):
     print(f'{name}: best path: {path}, lowest cost: {cost:.2f}, duration: {time:.2f}s')
 
 
 def all_conected(cities, cities_numbers_list, distance_matrix, calc_distance):
+    print(f'Cities list: {cities_numbers_list}')
     DFS_start_time = Timer.start()
     DFS_best_path_final, DFS_lowest_cost = DFS(
         [0], cities_numbers_list, cities, 0, [], float('inf'), calc_distance)
@@ -257,9 +314,10 @@ def all_conected(cities, cities_numbers_list, distance_matrix, calc_distance):
     NN_duration = Timer.stop(NN_start_time)
     result('NN', NN_best_path, NN_cost, NN_duration)
 
-    dijkstra_start_time = Timer.start()
-    # dijkstra_best_path, dijkstra_cost = dijkstra()
-    dijkstra_duration = Timer.stop(dijkstra_start_time)
+    # dijkstra_start_time = Timer.start()
+    # dijkstra(cities, cities_numbers_list, distance_matrix)
+    # dijkstra_best_path, dijkstra_cost = dijkstra(cities, cities_numbers_list, distance_matrix)
+    # dijkstra_duration = Timer.stop(dijkstra_start_time)
     # result('Dijkstra', dijkstra_best_path, dijkstra_cost, dijkstra_duration)
 
     A_star_start_time = Timer.start()
@@ -267,17 +325,39 @@ def all_conected(cities, cities_numbers_list, distance_matrix, calc_distance):
         [0], len(cities), cities, distance_matrix, heuristic_min_distance_AD, calc_distance_func=calc_distance)
     A_star_duration = Timer.stop(A_star_start_time)
     result('A star', A_star_best_path, A_star_cost, A_star_duration)
+    
+    A_star_start_time_IAD = Timer.start()
+    A_star_best_path_IAD, A_star_cost_IAD = a_star(
+        [0], len(cities), cities, distance_matrix, heuristic_mean_IAD, calc_distance_func=calc_distance)
+    A_star_duration_IAD = Timer.stop(A_star_start_time_IAD)
+    result('A star IAD', A_star_best_path_IAD, A_star_cost_IAD, A_star_duration_IAD)
+    
+    A_star_start_time = Timer.start()
+    A_star_2_best_path = a_star_2([0], len(cities), cities, distance_matrix, heuristic_min_distance_AD, calc_distance )
+    A_star_2_best_path.append(0)
+    A_star_cost = calculate_cost(A_star_2_best_path, cities, calc_distance)
+    A_star_duration = Timer.stop(A_star_start_time)
+    result('A star 2 AD', A_star_2_best_path, A_star_cost, A_star_duration)
+    
+    A_star_start_time = Timer.start()
+    A_star_2_best_path = a_star_2([0], len(cities), cities, distance_matrix, heuristic_mean_IAD, calc_distance )
+    A_star_2_best_path.append(0)
+    A_star_cost = calculate_cost(A_star_2_best_path, cities, calc_distance)
+    A_star_duration = Timer.stop(A_star_start_time)
+    result('A star 2 IAD', A_star_2_best_path, A_star_cost, A_star_duration)
 
     cities_numbers_list.append(0)
     random_cost = calculate_cost(cities_numbers_list, cities, calc_distance_function=calc_distance)
     result('Random path', cities_numbers_list, random_cost, 0)
-    cities_numbers_list.remove(0)
+    cities_numbers_list.pop()
     # print('miasta', cities, cities_numbers_list)
     # print('distance', distance_matrix)
 
     # heuristic_min_distance_AD([0, 3], distance_matrix[:])
 
 def destroyed_roads(cities, cities_numbers_list, distance_matrix, calc_distance_func):
+    pass
+    # print(f'Cities list: {cities_numbers_list}')
     DFS_start_time = Timer.start()
     DFS_best_path_final, DFS_lowest_cost = DFS(
         [0], cities_numbers_list, cities, 0, [], float('inf'), calc_distance_func)
@@ -295,47 +375,73 @@ def destroyed_roads(cities, cities_numbers_list, distance_matrix, calc_distance_
         [0], cities_numbers_list, cities, 0, copy.deepcopy(distance_matrix), calc_distance_func)
     NN_duration = Timer.stop(NN_start_time)
     result('NN destroyed roads:', NN_best_path, NN_cost, NN_duration)
-
-    dijkstra_start_time = Timer.start()
+    
+    A_star_start_time = Timer.start()
+    A_star_best_path, A_star_cost = a_star(
+        [0], len(cities), cities, distance_matrix, heuristic_min_distance_AD, calc_distance_func=calc_distance_func)
+    A_star_duration = Timer.stop(A_star_start_time)
+    result('A star', A_star_best_path, A_star_cost, A_star_duration)
+    
+    A_star_start_time_IAD = Timer.start()
+    A_star_best_path_IAD, A_star_cost_IAD = a_star(
+        [0], len(cities), cities, distance_matrix, heuristic_mean_IAD, calc_distance_func)
+    A_star_duration_IAD = Timer.stop(A_star_start_time_IAD)
+    result('A star IAD', A_star_best_path_IAD, A_star_cost_IAD, A_star_duration_IAD)
+    
+    A_star_start_time = Timer.start()
+    A_star_2_best_path = a_star_2([0], len(cities), cities, distance_matrix, heuristic_min_distance_AD, calc_distance_func )
+    A_star_2_best_path.append(0)
+    A_star_cost = calculate_cost(A_star_2_best_path, cities, calc_distance_func)
+    A_star_duration = Timer.stop(A_star_start_time)
+    result('A star 2 AD', A_star_2_best_path, A_star_cost, A_star_duration)
+    
+    A_star_start_time = Timer.start()
+    A_star_2_best_path = a_star_2([0], len(cities), cities, distance_matrix, heuristic_mean_IAD, calc_distance_func )
+    A_star_2_best_path.append(0)
+    A_star_cost = calculate_cost(A_star_2_best_path, cities, calc_distance_func)
+    A_star_duration = Timer.stop(A_star_start_time)
+    result('A star 2 IAD', A_star_2_best_path, A_star_cost, A_star_duration)
+    
+    # dijkstra_start_time = Timer.start()
     # dijkstra_best_path, dijkstra_cost = dijkstra()
-    dijkstra_duration = Timer.stop(dijkstra_start_time)
+    # dijkstra_duration = Timer.stop(dijkstra_start_time)
     # result('Dijkstra destroyed roads:', dijkstra_best_path, dijkstra_cost, dijkstra_duration)
     # print('miasta', cities, cities_numbers_list)
     # print('distance', distance_matrix)
 
 
-def draw_graph(cities):
-    roads = []
-    locations = []
+# def draw_graph(cities):
+#     roads = []
+#     locations = []
 
-    for city in cities:
-        locations.append((city.coords[0], city.coords[1]))
-        for road in city.neighbors:
-            roads.append((city.num, road))
-    G = nx.DiGraph(directed=True)
-    G.add_edges_from(roads)
+#     for city in cities:
+#         locations.append((city.coords[0], city.coords[1]))
+#         for road in city.neighbors:
+#             roads.append((city.num, road))
+#     G = nx.DiGraph(directed=True)
+#     G.add_edges_from(roads)
 
-    options = {
-        'node_color': 'green',
-        'node_size': 200,
-        'width': 1,
-        'arrowstyle': '->',
-        'arrowsize': 20,
-    }
+#     options = {
+#         'node_color': 'green',
+#         'node_size': 200,
+#         'width': 1,
+#         'arrowstyle': '->',
+#         'arrowsize': 20,
+#     }
 
-    val_map = {'1': 1.0, '5': 0.5714285714285714, '6': 0.0}
+#     val_map = {'1': 1.0, '5': 0.5714285714285714, '6': 0.0}
 
-    values = [val_map.get(node, 0.25) for node in G.nodes()]
-    # generating pos dictionary
+#     values = [val_map.get(node, 0.25) for node in G.nodes()]
+#     # generating pos dictionary
 
-    # pos = {str(i):location for i, location in enumerate(locations)}
-    pos = nx.spring_layout(G)
-    print('POSITION', pos)
+#     # pos = {str(i):location for i, location in enumerate(locations)}
+#     pos = nx.spring_layout(G)
+#     print('POSITION', pos)
 
-    # drawing graph, with positions included.
-    nx.draw_networkx(G, pos=pos, arrows=True, **options)
+#     # drawing graph, with positions included.
+#     nx.draw_networkx(G, pos=pos, arrows=True, **options)
 
-    plt.show()
+#     plt.show()
 
 
 if __name__ == '__main__':
@@ -347,7 +453,7 @@ if __name__ == '__main__':
         copy.deepcopy(distance_matrix), copy.deepcopy(cities))
     destroyed_distance_matrix_NS, destroyed_cities_NS = destroy_roads(
         copy.deepcopy(distance_matrix_NS), copy.deepcopy(cities))
-    # print(cities, destroyed_cities)
+    print(f'Coordinates of cities: {cities}')
     print('ALL CONNECTED, SYMETRIC:')
     all_conected(cities, cities_numbers_list, distance_matrix, calc_distance_S)
     print('ALL CONNECTED, NON SYMETRIC:')
